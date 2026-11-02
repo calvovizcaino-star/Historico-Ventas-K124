@@ -69,22 +69,23 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
   const buffer=await file.arrayBuffer(),book=XLSX.read(buffer,{type:'array',cellDates:false}),updated={};
   for(const rawName of book.SheetNames){
    const name=String(rawName).trim();
-   if(!/^20\d{2}$/.test(name))continue;
+   if(!/^20\\d{2}$/.test(name))continue;
    const sheet=book.Sheets[rawName],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null,raw:true});
    const months={};
-   for(const row of rows){
-    if(!Array.isArray(row))continue;
-    for(let c=0;c<row.length;c++){
-     const m=String(row[c]??'').trim().toUpperCase();
-     if(!MONTH_KEYS.has(m))continue;
-     const raw=row[c+1];
-     let v=typeof raw==='number'?raw:NaN;
-     if(typeof raw==='string'){
-      const cleaned=raw.trim().replace(/\s/g,'').replace(/\.(?=\d{3}(?:\\D|$))/g,'').replace(',','.');
-      v=Number(cleaned);
-     }
-     if(Number.isFinite(v))months[m]=v;
-    }
+   let header=-1;
+   for(let i=0;i<rows.length;i++){
+    const row=rows[i]||[];
+    const c1=String(row[1]??'').trim().toUpperCase();
+    const c2=String(row[2]??'').trim().toUpperCase();
+    if(c1==='MES'&&c2==='LITROS'){header=i;break;}
+   }
+   if(header<0)continue;
+   for(let i=header+1;i<Math.min(rows.length,header+13);i++){
+    const row=rows[i]||[];
+    const m=String(row[1]??'').trim().toUpperCase();
+    const raw=row[2];
+    const v=typeof raw==='number'?raw:(typeof raw==='string'?Number(raw.trim().replace(/\\s/g,'').replace(/\\.(?=\\d{3}(?:\\D|$))/g,'').replace(',','.')):NaN);
+    if(MONTH_KEYS.has(m)&&Number.isFinite(v))months[m]=v;
    }
    if(Object.keys(months).length)updated[name]=Object.fromEntries(MONTHS.map(m=>[m,Object.prototype.hasOwnProperty.call(months,m)?months[m]:null]));
   }
