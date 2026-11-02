@@ -98,7 +98,7 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
   const buffer=await file.arrayBuffer(),book=XLSX.read(buffer,{type:'array',cellDates:false}),updated={};
   for(const rawName of book.SheetNames){
    const name=String(rawName).trim();
-   if(!/^20\\d{2}$/.test(name))continue;
+   if(!/^20\d{2}$/.test(name))continue;
    const sheet=book.Sheets[rawName],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null,raw:true});
    const months={};
    let header=-1;
