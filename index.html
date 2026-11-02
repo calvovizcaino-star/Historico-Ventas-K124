@@ -82,7 +82,6 @@ function drawLine(){
   x.font='bold 12px system-ui';x.fillText(value,bx+boxW/2,by+32);
  }
  c.onpointermove=e=>{
-  if(e.pointerType!=='mouse')return;
   const rect=c.getBoundingClientRect(),local=e.clientX-rect.left;
   const idx=Math.max(0,Math.min(vals.length-1,Math.round((local-p.l)/(vw/(vals.length-1)))));
   if(local>=p.l&&local<=w-p.r&&idx!==c._activeYear){c._activeYear=idx;drawLine();}
