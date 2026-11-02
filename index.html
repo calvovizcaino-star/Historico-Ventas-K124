@@ -7,6 +7,12 @@
 <header><div class="top"><div class="brand"><div class="logo">K124<small>SL</small></div><div class="tag">Control de ventas</div></div><div style="font-size:11px;color:#b8c5d5">HISTÓRICO</div></div><div class="heading"><h1>Histórico de ventas</h1><p>Consulta la evolución del carburante · 2015–2026</p></div></header>
 <main class="wrap"><div class="toolbar"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><label for="year">Ejercicio seleccionado</label><select id="year"></select></div><div><input id="excelFile" type="file" accept=".xlsx,.xls" hidden><button id="importBtn" type="button" style="border:0;border-radius:12px;background:#f47721;color:white;font-weight:800;padding:12px 15px;font-size:13px;box-shadow:0 4px 12px #f4772133">＋ Actualizar desde Excel</button></div></div>
 <section class="grid"><div class="card"><div class="kicker">Litros registrados · <span id="yearLabel"></span></div><div class="big" id="total">—</div><div class="sub" id="monthsCount"></div></div><div class="card"><div class="kicker">Media mensual</div><div class="big" id="average">—</div><div class="sub">Sobre los meses con datos</div></div><div class="card"><div class="kicker">Variación vs año anterior</div><div class="big" id="variation">—</div><div class="sub" id="variationSub">Mismos meses comparados</div></div></section>
+<section class="section card" id="comparePanel">
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px"><div><div class="kicker">Análisis comparativo</div><h2 style="margin:5px 0 0">Comparador de años</h2></div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">Año <select id="compareA"></select></label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">Comparar con <select id="compareB"></select></label></div></div>
+ <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px"><div><div class="kicker">Total año 1</div><div class="big" id="compareTotalA">—</div><div class="sub" id="compareLabelA"></div></div><div><div class="kicker">Total año 2</div><div class="big" id="compareTotalB">—</div><div class="sub" id="compareLabelB"></div></div><div><div class="kicker">Diferencia</div><div class="big" id="compareDelta">—</div><div class="sub" id="comparePercent">—</div></div></div>
+ <div class="scroll"><table><thead><tr><th>Mes</th><th id="compareHeadA">Año 1</th><th id="compareHeadB">Año 2</th><th>Diferencia</th></tr></thead><tbody id="compareRows"></tbody></table></div>
+</section>
 <section class="section charts"><div class="chartbox"><h2>Ventas por mes</h2><canvas id="monthly"></canvas></div><div class="chartbox"><h2>Evolución anual</h2><canvas id="annual"></canvas></div></section>
 <section class="section tablebox"><div class="tablehead"><h2>Detalle mensual</h2><span class="muted" id="tableYear" style="font-size:12px"></span></div><div class="scroll"><table><thead><tr><th>Mes</th><th>Litros</th><th>Distribución</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 <div class="note" id="note">Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.</div><div class="foot">K124 SL · Histórico de ventas · Datos del archivo VENTAS CARBURANTE.xlsx</div></main>
@@ -93,7 +99,30 @@ function drawLine(){
  };
  c.onpointerleave=e=>{if(e.pointerType==='mouse'&&c._activeYear!==-1&&c._activeYear!==undefined){c._activeYear=-1;drawLine();}};
 }
-function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=valid(arr),sum=total(vs),count=vs.length,prevArr=DATA[prev]?values(prev).slice(0,count):[],prevSum=total(valid(prevArr));document.getElementById('yearLabel').textContent=y;document.getElementById('total').textContent=fmt2(sum)+' L';document.getElementById('monthsCount').textContent=count+' de 12 meses con datos';document.getElementById('average').textContent=fmt(Math.round(sum/(count||1)))+' L';let d=prevSum?((sum-prevSum)/prevSum*100):null;const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=DATA[prev]?'Comparado con '+prev+' · mismos meses':'No hay año anterior';document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
+function fillCompareOptions(){
+ const years=Object.keys(DATA).sort(),a=document.getElementById('compareA'),b=document.getElementById('compareB');
+ const oldA=a.value,oldB=b.value;
+ a.innerHTML='';b.innerHTML='';
+ years.forEach(y=>{for(const select of [a,b]){const o=document.createElement('option');o.value=y;o.textContent=y;select.appendChild(o)}});
+ a.value=years.includes(oldA)?oldA:years[years.length-1];
+ b.value=years.includes(oldB)&&oldB!==a.value?oldB:(years.length>1?years[years.length-2]:a.value);
+}
+function renderCompare(){
+ const a=document.getElementById('compareA').value,b=document.getElementById('compareB').value;
+ const va=values(a),vb=values(b),ta=total(valid(va)),tb=total(valid(vb)),delta=ta-tb,pct=tb?delta/tb*100:null;
+ document.getElementById('compareTotalA').textContent=fmt2(ta)+' L';
+ document.getElementById('compareTotalB').textContent=fmt2(tb)+' L';
+ document.getElementById('compareLabelA').textContent='Ejercicio '+a;
+ document.getElementById('compareLabelB').textContent='Ejercicio '+b;
+ const de=document.getElementById('compareDelta');de.textContent=(delta>0?'+':'')+fmt2(delta)+' L';de.className='big '+(delta>0?'positive':delta<0?'negative':'');
+ document.getElementById('comparePercent').textContent=pct===null?'Sin base para comparar':(pct>0?'+':'')+fmt2(pct)+' % respecto a '+b;
+ document.getElementById('compareHeadA').textContent=a+' (L)';document.getElementById('compareHeadB').textContent=b+' (L)';
+ document.getElementById('compareRows').innerHTML=MONTHS.map((m,i)=>{const x=va[i],y=vb[i],d=x!==null&&y!==null?x-y:null;return '<tr><td class="month">'+m+'</td><td>'+(x===null?'—':fmt2(x))+'</td><td>'+(y===null?'—':fmt2(y))+'</td><td>'+(d===null?'—':(d>0?'+':'')+fmt2(d))+'</td></tr>'}).join('');
+}
+document.getElementById('compareA').addEventListener('change',renderCompare);
+document.getElementById('compareB').addEventListener('change',renderCompare);
+fillCompareOptions();
+function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=valid(arr),sum=total(vs),count=vs.length,prevArr=DATA[prev]?values(prev).slice(0,count):[],prevSum=total(valid(prevArr));document.getElementById('yearLabel').textContent=y;document.getElementById('total').textContent=fmt2(sum)+' L';document.getElementById('monthsCount').textContent=count+' de 12 meses con datos';document.getElementById('average').textContent=fmt(Math.round(sum/(count||1)))+' L';let d=prevSum?((sum-prevSum)/prevSum*100):null;const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=DATA[prev]?'Comparado con '+prev+' · mismos meses':'No hay año anterior';document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();renderCompare();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
 
 document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('excelFile').click());
 document.getElementById('excelFile').addEventListener('change',async ev=>{
@@ -130,7 +159,7 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
   if(!Object.keys(updated).length)throw new Error('No he encontrado las tablas mensuales de ventas. Selecciona el Excel histórico de K124.');
   DATA={...DATA,...updated};
   localStorage.setItem('k124_historico_data',JSON.stringify(DATA));
-  refreshYearOptions(Object.keys(updated).sort().slice(-1)[0]);render();
+  refreshYearOptions(Object.keys(updated).sort().slice(-1)[0]);fillCompareOptions();render();
   const note=document.getElementById('note');note.textContent='Excel actualizado correctamente: '+Object.keys(updated).length+' ejercicios importados desde “'+file.name+'”. Los datos quedan guardados en este navegador.';
   alert('¡Excel importado correctamente! Se han actualizado '+Object.keys(updated).length+' ejercicios.');
  }catch(err){alert(err.message||'No se ha podido leer el Excel.');}
