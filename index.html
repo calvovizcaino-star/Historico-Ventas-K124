@@ -77,7 +77,7 @@ function drawLine(){
  const c=document.getElementById('annual'),r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
  c.width=r.width*dpr;c.height=r.height*dpr;
  const x=c.getContext('2d');x.scale(dpr,dpr);
- const w=r.width,h=r.height,p={l:38,r:10,t:14,b:30},vals=YEARS.map(y=>total(valid(values(y)))),max=Math.max(...vals,1)*1.08,vw=w-p.l-p.r,vh=h-p.t-p.b;
+ const w=r.width,h=r.height,p={l:38,r:10,t:58,b:30},vals=YEARS.map(y=>total(valid(values(y)))),max=Math.max(...vals,1)*1.08,vw=w-p.l-p.r,vh=h-p.t-p.b;
  const active=c._activeYear??-1,px=i=>p.l+i*vw/(vals.length-1),py=v=>p.t+vh-v/max*vh;
  x.font='10px system-ui';x.fillStyle='#8b96a5';x.strokeStyle='#edf0f3';
  for(let k=0;k<4;k++){let yy=p.t+vh*k/3;x.beginPath();x.moveTo(p.l,yy);x.lineTo(w-p.r,yy);x.stroke();x.fillText(fmt(max*(1-k/3)/1000000)+'M',2,yy+3)}
@@ -88,7 +88,7 @@ function drawLine(){
  }
  if(active>=0){
   const label=YEARS[active],value=fmt2(vals[active])+' L',yearWidth=110,boxW=150,boxH=43;
-  const bx=Math.max(4,Math.min(w-boxW-4,px(active)-boxW/2)),by=10;
+  const bx=Math.max(4,Math.min(w-boxW-4,px(active)-boxW/2)),by=5;
   x.fillStyle='#101b2b';x.beginPath();x.roundRect(bx,by,boxW,boxH,9);x.fill();
   x.fillStyle='#fff';x.textAlign='center';x.font='bold 11px system-ui';x.fillText(label,bx+boxW/2,by+15);
   x.font='bold 12px system-ui';x.fillText(value,bx+boxW/2,by+32);
