@@ -35,9 +35,11 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
    if(!/^20\d{2}$/.test(name))continue;
    const sheet=book.Sheets[name],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
    const months={};
-   for(let i=0;i<Math.min(rows.length,22);i++){
-    const row=rows[i]||[],m=String(row[1]??'').trim().toUpperCase(),v=row[2];
-    if(MONTH_KEYS.has(m)&&typeof v==='number'&&Number.isFinite(v))months[m]=v;
+   for(let i=0;i<rows.length;i++){
+    const row=rows[i]||[];
+    const m=String(row[1]??'').trim().toUpperCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+    const raw=row[2],v=typeof raw==='number'?raw:(typeof raw==='string'?Number(raw.replace(/\\./g,'').replace(',','.')):NaN);
+    if(MONTH_KEYS.has(m)&&Number.isFinite(v))months[m]=v;
    }
    if(Object.keys(months).length)updated[name]=Object.fromEntries(MONTHS.map(m=>[m,Object.prototype.hasOwnProperty.call(months,m)?months[m]:null]));
   }
