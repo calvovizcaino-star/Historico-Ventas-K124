@@ -32,7 +32,7 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
   if(!window.XLSX)throw new Error('No se ha podido cargar el lector de Excel. Comprueba la conexión e inténtalo de nuevo.');
   const buffer=await file.arrayBuffer(),book=XLSX.read(buffer,{type:'array',cellDates:false}),updated={};
   for(const name of book.SheetNames){
-   if(!/^20\\d{2}$/.test(name))continue;
+   if(!/^20\d{2}$/.test(name))continue;
    const sheet=book.Sheets[name],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null});
    const months={};
    for(let i=0;i<Math.min(rows.length,22);i++){
