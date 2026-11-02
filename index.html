@@ -105,21 +105,24 @@ document.getElementById('excelFile').addEventListener('change',async ev=>{
   const buffer=await file.arrayBuffer(),book=XLSX.read(buffer,{type:'array',cellDates:false}),updated={};
   for(const rawName of book.SheetNames){
    const name=String(rawName).trim();
-   if(!/^20\d{2}$/.test(name))continue;
+   if(name.length!==4||Number(name)<2000||Number(name)>2099)continue;
    const sheet=book.Sheets[rawName],rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:null,raw:true});
    const months={};
-   let header=-1;
+   let header=-1,monthCol=-1,valueCol=-1;
    for(let i=0;i<rows.length;i++){
     const row=rows[i]||[];
-    const c1=String(row[1]??'').trim().toUpperCase();
-    const c2=String(row[2]??'').trim().toUpperCase();
-    if(c1==='MES'&&c2==='LITROS'){header=i;break;}
+    for(let c=0;c<row.length-1;c++){
+     const left=String(row[c]??'').trim().toUpperCase();
+     const right=String(row[c+1]??'').trim().toUpperCase();
+     if(left==='MES'&&right==='LITROS'){header=i;monthCol=c;valueCol=c+1;break;}
+    }
+    if(header>=0)break;
    }
    if(header<0)continue;
    for(let i=header+1;i<Math.min(rows.length,header+13);i++){
     const row=rows[i]||[];
-    const m=String(row[1]??'').trim().toUpperCase();
-    const raw=row[2];
+    const m=String(row[monthCol]??'').trim().toUpperCase();
+    const raw=row[valueCol];
     const v=typeof raw==='number'?raw:(typeof raw==='string'?Number(raw.trim().replace(/\\s/g,'').replace(/\\.(?=\\d{3}(?:\\D|$))/g,'').replace(',','.')):NaN);
     if(MONTH_KEYS.has(m)&&Number.isFinite(v))months[m]=v;
    }
