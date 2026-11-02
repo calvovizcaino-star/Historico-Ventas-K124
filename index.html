@@ -35,6 +35,10 @@ function drawBars(canvasId,labels,vals){
   x.fillStyle=i===active?'#d85f12':'#f47721';x.beginPath();x.roundRect(xx,yy,bw,bh,4);x.fill();
   x.fillStyle='#7b8795';x.textAlign='center';x.fillText(labels[i].slice(0,3),xx+bw/2,h-12);
  });
+ if(active>=0){
+  const cx=p.l+active*slot+slot/2;
+  x.beginPath();x.moveTo(cx,p.t);x.lineTo(cx,p.t+vh);x.strokeStyle='#7b8795';x.lineWidth=1.5;x.setLineDash([4,4]);x.stroke();x.setLineDash([]);
+ }
  if(active>=0&&vals[active]!==null){
   const v=vals[active],label=labels[active],text=fmt2(v)+' L',title=label.charAt(0)+label.slice(1).toLowerCase();
   x.font='bold 12px system-ui';const tw=Math.max(x.measureText(text).width,x.measureText(title).width)+20,th=43;
@@ -67,6 +71,9 @@ function drawLine(){
  for(let k=0;k<4;k++){let yy=p.t+vh*k/3;x.beginPath();x.moveTo(p.l,yy);x.lineTo(w-p.r,yy);x.stroke();x.fillText(fmt(max*(1-k/3)/1000000)+'M',2,yy+3)}
  x.beginPath();vals.forEach((v,i)=>{i?x.lineTo(px(i),py(v)):x.moveTo(px(i),py(v))});x.strokeStyle='#f47721';x.lineWidth=2.5;x.stroke();
  vals.forEach((v,i)=>{x.beginPath();x.arc(px(i),py(v),i===active?6:3.5,0,Math.PI*2);x.fillStyle='#f47721';x.fill();x.fillStyle='#7b8795';x.textAlign='center';x.fillText(YEARS[i].slice(2),px(i),h-10)});
+ if(active>=0){
+  x.beginPath();x.moveTo(px(active),p.t);x.lineTo(px(active),p.t+vh);x.strokeStyle='#7b8795';x.lineWidth=1.5;x.setLineDash([4,4]);x.stroke();x.setLineDash([]);
+ }
  if(active>=0){
   const label=YEARS[active],value=fmt2(vals[active])+' L',yearWidth=110,boxW=150,boxH=43;
   const bx=Math.max(4,Math.min(w-boxW-4,px(active)-boxW/2)),by=10;
