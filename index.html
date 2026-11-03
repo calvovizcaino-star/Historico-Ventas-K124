@@ -211,7 +211,7 @@ document.getElementById('saveManual').addEventListener('click',async()=>{
   const updated=rows[0].datos;
   if(!updated[year])updated[year]=Object.fromEntries(MONTHS.map(m=>[m,null]));
   updated[year][month]=Math.round((liters+Number.EPSILON)*100)/100;
-  const response=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas',{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({datos:updated})});
+  const response=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas',{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({datos:updated,updated_at:new Date().toISOString()})});
   if(!response.ok)throw new Error('No se ha podido guardar en la nube (HTTP '+response.status+').');
   DATA=updated;localStorage.setItem('k124_historico_data',JSON.stringify(DATA));
   refreshYearOptions(year);fillCompareOptions();render();
