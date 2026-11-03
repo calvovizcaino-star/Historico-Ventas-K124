@@ -188,8 +188,6 @@ document.addEventListener('click',e=>{if(!e.target.closest('.menu-wrap')){docume
 function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=valid(arr),sum=total(vs),count=vs.length,prevArr=DATA[prev]?values(prev).slice(0,count):[],prevSum=total(valid(prevArr));document.getElementById('yearLabel').textContent=y;document.getElementById('total').textContent=fmt2(sum)+' L';document.getElementById('monthsCount').textContent=count+' de 12 meses con datos';document.getElementById('average').textContent=fmt(Math.round(sum/(count||1)))+' L';let d=prevSum?((sum-prevSum)/prevSum*100):null;const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=DATA[prev]?'Comparado con '+prev+' · mismos meses':'No hay año anterior';document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();renderCompare();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
 
 
-let adminSession=null;
-const ADMIN_EMAIL='calvovizcaino@gmail.com';
 const monthFromDate=d=>{const x=new Date(d+'T12:00:00');return {year:String(x.getFullYear()),month:MONTHS[x.getMonth()]}};
 document.getElementById('manualBtn').addEventListener('click',()=>{
  const p=document.getElementById('manualPanel');p.hidden=!p.hidden;
@@ -201,23 +199,19 @@ document.getElementById('saveManual').addEventListener('click',async()=>{
  const liters=Number(raw.replace(',','.'));
  if(!date||raw===''||!Number.isFinite(liters)||liters<0){status.textContent='Comprueba la fecha y los litros introducidos.';return;}
  if(!confirm('Vas a sustituir las ventas del mes completo. ¿Quieres continuar?'))return;
- btn.disabled=true;status.textContent='Accediendo como administrador…';
+ btn.disabled=true;status.textContent='Guardando…';
  try{
-  if(!adminSession){
-   const email=prompt('Correo del administrador:',ADMIN_EMAIL);if(!email)throw new Error('Acceso cancelado.');
-   const password=prompt('Contraseña del administrador:');if(!password)throw new Error('Acceso cancelado.');
-   const auth=await fetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-   if(!auth.ok)throw new Error('No se ha podido iniciar sesión. Comprueba el correo y la contraseña.');
-   adminSession=await auth.json();
-   if(String(adminSession.user?.email||'').toLowerCase()!==ADMIN_EMAIL)throw new Error('Este usuario no tiene permiso para modificar las ventas.');
-  }
   const {year,month}=monthFromDate(date);
-  if(!DATA[year])DATA[year]=Object.fromEntries(MONTHS.map(m=>[m,null]));
-  DATA[year][month]=Math.round((liters+Number.EPSILON)*100)/100;
-  status.textContent='Guardando en la nube…';
-  const response=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas',{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+adminSession.access_token,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({datos:DATA})});
-  if(!response.ok)throw new Error('La base de datos no ha aceptado el cambio (HTTP '+response.status+'). No se ha confirmado el guardado.');
-  localStorage.setItem('k124_historico_data',JSON.stringify(DATA));
+  const latest=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas&select=datos',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+  if(!latest.ok)throw new Error('No se han podido consultar los datos actuales (HTTP '+latest.status+').');
+  const rows=await latest.json();
+  if(!rows.length||!rows[0].datos)throw new Error('No se ha encontrado el histórico en la nube.');
+  const updated=rows[0].datos;
+  if(!updated[year])updated[year]=Object.fromEntries(MONTHS.map(m=>[m,null]));
+  updated[year][month]=Math.round((liters+Number.EPSILON)*100)/100;
+  const response=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas',{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({datos:updated})});
+  if(!response.ok)throw new Error('No se ha podido guardar en la nube (HTTP '+response.status+').');
+  DATA=updated;localStorage.setItem('k124_historico_data',JSON.stringify(DATA));
   refreshYearOptions(year);fillCompareOptions();render();
   status.textContent='Guardado y sincronizado: '+month+' '+year+'.';
   document.getElementById('note').textContent='Última actualización: '+month+' '+year+' · '+fmt2(DATA[year][month])+' L. Sincronizado desde la nube.';
