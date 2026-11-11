@@ -225,7 +225,8 @@ function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=va
  const daysInMonth=(year,month)=>new Date(year,month+1,0).getDate();
  let elapsedEquivalentDays=0;
  for(let m=0;m<=refMonth;m++){const end=m===refMonth?refDay:daysInMonth(Number(y),m);for(let day=1;day<=end;day++)elapsedEquivalentDays+=dayWeight(Number(y),m,day);}
- document.getElementById('projectionLabel').textContent='Posibles ventas '+y;\n const projected=elapsedEquivalentDays>0?(sum/elapsedEquivalentDays)*362:0;
+ document.getElementById('projectionLabel').textContent='Posibles ventas '+y;
+ const projected=elapsedEquivalentDays>0?(sum/elapsedEquivalentDays)*362:0;
  document.getElementById('projection').textContent=fmt2(projected)+' L';
  document.getElementById('projectionSub').textContent='Media de '+fmt2(sum/Math.max(elapsedEquivalentDays,1))+' L/día · '+fmt2(elapsedEquivalentDays)+' días equivalentes';
  const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=comparisonNote;document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();renderCompare();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
