@@ -31,7 +31,7 @@
   <div class="compare-stat"><div class="kicker">Previsión anual 2027</div><div class="big" id="forecastTotal">—</div><div class="sub" id="forecastBase">Base de cálculo: —</div></div>
   <div class="compare-stat"><div class="kicker">Cambio frente a la base</div><div class="big" id="forecastDelta">—</div><div class="sub" id="forecastPercent">—</div></div>
  </div>
- <div class="scroll"><table class="compare-table"><thead><tr><th>Mes</th><th>Base usada</th><th>Media variación</th><th>Previsión 2027</th></tr></thead><tbody id="forecastRows"></tbody><tfoot><tr><th>Total</th><th id="forecastBaseTotal">—</th><th>—</th><th id="forecastGrandTotal">—</th></tr></tfoot></table></div>
+ <div class="scroll"><table class="compare-table"><thead><tr><th>Previsión 2027</th><th>Mes</th><th>Base usada</th><th>Media variación</th></tr></thead><tbody id="forecastRows"></tbody><tfoot><tr><th id="forecastGrandTotal">—</th><th>Total</th><th id="forecastBaseTotal">—</th><th>—</th></tr></tfoot></table></div>
  <p class="muted" id="forecastMethod" style="font-size:12px;margin-top:14px"></p>
 </section>
 <section class="section card" id="recordsPanel" hidden>
@@ -192,14 +192,17 @@ function renderForecast(){
  const years=dataYears().map(Number).filter(y=>y>=2022&&y<=2026).sort((a,b)=>a-b);
  const rows=MONTHS.map((month,index)=>{
   const pairs=[];
+  const now=new Date(),isCurrentMonth=now.getFullYear()===2026&&index===now.getMonth();
   for(let y=2022;y<2026;y++){
+   // El mes en curso de 2026 puede estar incompleto: no se usa como variación anual.
+   if(isCurrentMonth&&y===2025)continue;
    const previous=DATA[String(y)]?.[month],next=DATA[String(y+1)]?.[month];
    if(previous!==null&&previous!==undefined&&next!==null&&next!==undefined&&previous>0&&next>=0){
     pairs.push((next/previous)-1);
    }
   }
   const avg=pairs.length?pairs.reduce((a,b)=>a+b,0)/pairs.length:0;
-  let baseYear=2026,base=DATA['2026']?.[month];
+  let baseYear=isCurrentMonth?2025:2026,base=DATA[String(baseYear)]?.[month];
   if(base===null||base===undefined){baseYear=2025;base=DATA['2025']?.[month];}
   if(base===null||base===undefined){const available=years.filter(y=>DATA[String(y)]?.[month]!==null&&DATA[String(y)]?.[month]!==undefined);baseYear=available.length?available[available.length-1]:null;base=baseYear?DATA[String(baseYear)][month]:null;}
   const forecast=base===null||base===undefined?null:base*(1+avg);
@@ -212,7 +215,7 @@ function renderForecast(){
  const delta=forecastTotal-baseTotal,pct=baseTotal?delta/baseTotal*100:null;
  const de=document.getElementById('forecastDelta');de.textContent=(delta>0?'+':'')+fmt2(delta)+' L';de.className='big '+(delta>0?'positive':delta<0?'negative':'');
  document.getElementById('forecastPercent').textContent=pct===null?'Sin base de comparación':(pct>0?'+':'')+fmt2(pct)+' % frente a la base';
- document.getElementById('forecastRows').innerHTML=rows.map(r=>'<tr><td class="month">'+r.month+'</td><td>'+(r.base===null?'—':fmt2(r.base)+' L ('+r.baseYear+')')+'</td><td>'+(r.pairs?(r.avg>0?'+':'')+fmt2(r.avg*100)+' %':'—')+'</td><td>'+(r.forecast===null?'—':fmt2(r.forecast)+' L')+'</td></tr>').join('');
+ document.getElementById('forecastRows').innerHTML=rows.map(r=>'<tr><td class="month">'+(r.forecast===null?'—':fmt2(r.forecast)+' L')+'</td><td>'+r.month+'</td><td>'+(r.base===null?'—':fmt2(r.base)+' L ('+r.baseYear+')')+'</td><td>'+(r.pairs?(r.avg>0?'+':'')+fmt2(r.avg*100)+' %':'—')+'</td></tr>').join('');
  document.getElementById('forecastBaseTotal').textContent=fmt2(baseTotal)+' L';
  document.getElementById('forecastGrandTotal').textContent=fmt2(forecastTotal)+' L';
  document.getElementById('forecastMethod').textContent='Método: para cada mes se aplica al último dato anual disponible la media aritmética de las variaciones interanuales de ese mes entre 2022 y 2026. Solo se utilizan pares de años con datos; 2020 y 2021 quedan excluidos. Si se completa un mes de 2026, la previsión de ese mes se recalcula automáticamente.';
