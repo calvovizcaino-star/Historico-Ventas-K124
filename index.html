@@ -254,7 +254,7 @@ function renderRecords(){
 }
 function setView(view){
  const comparison=view==='compare',records=view==='records',months=view==='months',forecast=view==='forecast';
- document.querySelectorAll('.home-only').forEach(el=>el.hidden=comparison||records||months);
+ document.querySelectorAll('.home-only').forEach(el=>el.hidden=comparison||records||months||forecast);
  document.getElementById('comparePanel').hidden=!comparison;
  document.getElementById('monthsPanel').hidden=!months;
  document.getElementById('forecastPanel').hidden=!forecast;
