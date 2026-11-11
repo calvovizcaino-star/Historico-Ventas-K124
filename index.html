@@ -237,7 +237,7 @@ function updateManualCurrent(){const d=document.getElementById('manualDate').val
 document.getElementById('manualDate').addEventListener('change',updateManualCurrent);
 document.getElementById('manualBtn').addEventListener('click',()=>{
  const p=document.getElementById('manualPanel');p.hidden=!p.hidden;
- if(!p.hidden){const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);document.getElementById('manualDate').value=[yesterday.getFullYear(),String(yesterday.getMonth()+1).padStart(2,'0'),String(yesterday.getDate()).padStart(2,'0')].join('-');document.getElementById('manualLiters').value='';document.getElementById('manualStatus').textContent='';updateManualCurrent();}
+ if(!p.hidden){const today=new Date();document.getElementById('manualDate').value=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');document.getElementById('manualLiters').value='';document.getElementById('manualStatus').textContent='';updateManualCurrent();}
 });
 document.getElementById('closeManual').addEventListener('click',()=>document.getElementById('manualPanel').hidden=true);
 document.getElementById('saveManual').addEventListener('click',async()=>{
