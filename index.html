@@ -49,9 +49,10 @@ async function loadCloudData(){
 }
 
 const MONTH_KEYS=new Set(["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"]);
-function refreshYearOptions(preferred){const old=preferred||sel.value;sel.innerHTML="";Object.keys(DATA).sort().forEach(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;sel.appendChild(o)});sel.value=DATA[old]?old:Object.keys(DATA).sort().slice(-1)[0]}
+function dataYears(){return Object.keys(DATA).filter(y=>/^\d{4}$/.test(y)).sort()}
+function refreshYearOptions(preferred){const years=dataYears(),old=preferred||sel.value;sel.innerHTML="";years.forEach(y=>{const o=document.createElement("option");o.value=y;o.textContent=y;sel.appendChild(o)});sel.value=DATA[old]?old:years.slice(-1)[0]}
 try{const saved=localStorage.getItem("k124_historico_data");if(saved)DATA=JSON.parse(saved)}catch(e){}
-const YEARS=Object.keys(DATA).sort();const fmt=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(n);const fmt2=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);const total=a=>a.reduce((s,v)=>s+(v??0),0);const values=y=>MONTHS.map(m=>DATA[y][m]);const valid=a=>a.filter(v=>v!==null&&Number.isFinite(v));const ctx=id=>document.getElementById(id).getContext('2d');
+const YEARS=dataYears();const fmt=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:0}).format(n);const fmt2=n=>new Intl.NumberFormat('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);const total=a=>a.reduce((s,v)=>s+(v??0),0);const values=y=>MONTHS.map(m=>DATA[y][m]);const valid=a=>a.filter(v=>v!==null&&Number.isFinite(v));const ctx=id=>document.getElementById(id).getContext('2d');
 const sel=document.getElementById('year');YEARS.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;sel.appendChild(o)});sel.value='2026';
 function drawBars(canvasId,labels,vals){
  const c=document.getElementById(canvasId),r=c.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
@@ -127,7 +128,7 @@ function drawLine(){
  c.onpointerleave=e=>{if(e.pointerType==='mouse'&&c._activeYear!==-1&&c._activeYear!==undefined){c._activeYear=-1;drawLine();}};
 }
 function fillCompareOptions(){
- const years=Object.keys(DATA).sort(),a=document.getElementById('compareA'),b=document.getElementById('compareB');
+ const years=dataYears(),a=document.getElementById('compareA'),b=document.getElementById('compareB');
  const oldA=a.value,oldB=b.value;
  a.innerHTML='';b.innerHTML='';
  years.forEach(y=>{for(const select of [a,b]){const o=document.createElement('option');o.value=y;o.textContent=y;select.appendChild(o)}});
@@ -150,7 +151,7 @@ document.getElementById('compareA').addEventListener('change',renderCompare);
 document.getElementById('compareB').addEventListener('change',renderCompare);
 fillCompareOptions();
 function renderRecords(){
- const years=Object.keys(DATA).sort((a,b)=>Number(a)-Number(b));
+ const years=dataYears().sort((a,b)=>Number(a)-Number(b));
  let bestMonth=null,bestYear=null;
  const annual=years.map(y=>{
   const arr=values(y),sum=total(valid(arr));
@@ -185,7 +186,22 @@ document.getElementById('menuBtn').addEventListener('click',()=>{
 });
 document.querySelectorAll('[data-view]').forEach(btn=>btn.addEventListener('click',()=>setView(btn.dataset.view)));
 document.addEventListener('click',e=>{if(!e.target.closest('.menu-wrap')){document.getElementById('menuPop').hidden=true;document.getElementById('menuBtn').setAttribute('aria-expanded','false')}});
-function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=valid(arr),sum=total(vs),count=vs.length,prevArr=DATA[prev]?values(prev).slice(0,count):[],prevSum=total(valid(prevArr));document.getElementById('yearLabel').textContent=y;document.getElementById('total').textContent=fmt2(sum)+' L';document.getElementById('monthsCount').textContent=count+' de 12 meses con datos';document.getElementById('average').textContent=fmt(Math.round(sum/(count||1)))+' L';let d=prevSum?((sum-prevSum)/prevSum*100):null;const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=DATA[prev]?'Comparado con '+prev+' · mismos meses':'No hay año anterior';document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();renderCompare();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
+function render(){const y=sel.value,prev=String(Number(y)-1),arr=values(y),vs=valid(arr),sum=total(vs),count=vs.length;
+ let currentComparable=sum,previousComparable=DATA[prev]?total(valid(values(prev).slice(0,count))):0;
+ let comparisonNote=DATA[prev]?'Comparado con '+prev+' · mismos meses':'No hay año anterior';
+ const now=new Date(),monthIndex=now.getMonth(),currentMonth=MONTHS[monthIndex];
+ const isCurrentMonth=Number(y)===now.getFullYear()&&arr[monthIndex]!==null;
+ if(isCurrentMonth&&DATA[prev]){
+  const updateDate=DATA._updatedDates?.[y]?.[currentMonth];
+  const elapsed=updateDate?Number(updateDate.slice(8,10)):now.getDate();
+  const daysPrevious=new Date(Number(prev),monthIndex+1,0).getDate();
+  const previousMonth=DATA[prev][currentMonth];
+  const expectedPrevious=previousMonth===null||previousMonth===undefined?0:previousMonth/daysPrevious*Math.max(1,Math.min(daysPrevious,elapsed));
+  currentComparable=total(valid(arr.slice(0,monthIndex+1)));
+  previousComparable=total(valid(values(prev).slice(0,monthIndex)))+expectedPrevious;
+  comparisonNote='Hasta el día '+elapsed+' · media diaria de '+prev;
+ }
+ let d=previousComparable?((currentComparable-previousComparable)/previousComparable*100):null;document.getElementById('yearLabel').textContent=y;document.getElementById('total').textContent=fmt2(sum)+' L';document.getElementById('monthsCount').textContent=count+' de 12 meses con datos';document.getElementById('average').textContent=fmt(Math.round(sum/(count||1)))+' L';const ve=document.getElementById('variation');ve.textContent=d===null?'—':(d>0?'+':'')+fmt2(d)+' %';ve.className='big '+(d===null?'':d>=0?'positive':'negative');document.getElementById('variationSub').textContent=comparisonNote;document.getElementById('tableYear').textContent=y;const max=Math.max(...vs,1);document.getElementById('rows').innerHTML=MONTHS.map((m,i)=>{let v=arr[i];return '<tr><td class="month">'+m+'</td><td>'+(v===null?'—':fmt2(v)+' L')+'</td><td style="width:36%">'+(v===null?'—':'<div class="bar"><i style="width:'+Math.max(1,v/max*100)+'%"></i></div>')+'</td></tr>'}).join('');drawBars('monthly',MONTHS,arr);drawLine();renderCompare();const note=document.getElementById('note');note.textContent=(y==='2026'?'El dato de noviembre figura como 4.417 litros en el Excel original; diciembre aún no tiene dato. ':'')+'Datos incorporados desde el Excel original. Esta aplicación es únicamente de consulta; no permite editar las ventas.'}
 
 
 const monthFromDate=d=>{const x=new Date(d+'T12:00:00');return {year:String(x.getFullYear()),month:MONTHS[x.getMonth()]}};
@@ -211,6 +227,9 @@ document.getElementById('saveManual').addEventListener('click',async()=>{
   const updated=rows[0].datos;
   if(!updated[year])updated[year]=Object.fromEntries(MONTHS.map(m=>[m,null]));
   updated[year][month]=Math.round((liters+Number.EPSILON)*100)/100;
+  if(!updated._updatedDates)updated._updatedDates={};
+  if(!updated._updatedDates[year])updated._updatedDates[year]={};
+  updated._updatedDates[year][month]=date;
   const response=await fetch(SUPABASE_URL+'/rest/v1/k124_datos?id=eq.historico_ventas',{method:'PATCH',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({datos:updated,updated_at:new Date().toISOString()})});
   if(!response.ok)throw new Error('No se ha podido guardar en la nube (HTTP '+response.status+').');
   DATA=updated;localStorage.setItem('k124_historico_data',JSON.stringify(DATA));
