@@ -31,7 +31,7 @@
   <div class="compare-stat"><div class="kicker">Previsión anual 2027</div><div class="big" id="forecastTotal">—</div><div class="sub" id="forecastBase">Base de cálculo: —</div></div>
   <div class="compare-stat"><div class="kicker">Cambio frente a la base</div><div class="big" id="forecastDelta">—</div><div class="sub" id="forecastPercent">—</div></div>
  </div>
- <div class="scroll"><table class="compare-table forecast-table"><thead><tr><th>Previsión 2027</th><th>Mes</th><th>Base usada</th><th>Media variación</th></tr></thead><tbody id="forecastRows"></tbody><tfoot><tr><th id="forecastGrandTotal">—</th><th>Total</th><th id="forecastBaseTotal">—</th><th>—</th></tr></tfoot></table></div>
+ <div class="scroll"><table class="compare-table forecast-table"><thead><tr><th>Mes</th><th>Previsión 2027</th><th>Base usada</th><th>Media variación</th></tr></thead><tbody id="forecastRows"></tbody><tfoot><tr><th>Total</th><th id="forecastGrandTotal">—</th><th id="forecastBaseTotal">—</th><th>—</th></tr></tfoot></table></div>
  <p class="muted" id="forecastMethod" style="font-size:12px;margin-top:14px"></p>
 </section>
 <section class="section card" id="recordsPanel" hidden>
@@ -215,7 +215,7 @@ function renderForecast(){
  const delta=forecastTotal-baseTotal,pct=baseTotal?delta/baseTotal*100:null;
  const de=document.getElementById('forecastDelta');de.textContent=(delta>0?'+':'')+fmt2(delta)+' L';de.className='big '+(delta>0?'positive':delta<0?'negative':'');
  document.getElementById('forecastPercent').textContent=pct===null?'Sin base de comparación':(pct>0?'+':'')+fmt2(pct)+' % frente a la base';
- document.getElementById('forecastRows').innerHTML=rows.map(r=>'<tr><td class="month">'+(r.forecast===null?'—':fmt2(r.forecast)+' L')+'</td><td>'+r.month+'</td><td>'+(r.base===null?'—':fmt2(r.base)+' L ('+r.baseYear+')')+'</td><td>'+(r.pairs?(r.avg>0?'+':'')+fmt2(r.avg*100)+' %':'—')+'</td></tr>').join('');
+ document.getElementById('forecastRows').innerHTML=rows.map(r=>'<tr><td class="month">'+r.month+'</td><td>'+(r.forecast===null?'—':fmt2(r.forecast)+' L')+'</td><td>'+(r.base===null?'—':fmt2(r.base)+' L ('+r.baseYear+')')+'</td><td>'+(r.pairs?(r.avg>0?'+':'')+fmt2(r.avg*100)+' %':'—')+'</td></tr>').join('');
  document.getElementById('forecastBaseTotal').textContent=fmt2(baseTotal)+' L';
  document.getElementById('forecastGrandTotal').textContent=fmt2(forecastTotal)+' L';
  document.getElementById('forecastMethod').textContent='Método: para cada mes se aplica al último dato anual disponible la media aritmética de las variaciones interanuales de ese mes entre 2022 y 2026. Solo se utilizan pares de años con datos; 2020 y 2021 quedan excluidos. Si se completa un mes de 2026, la previsión de ese mes se recalcula automáticamente.';
